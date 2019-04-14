@@ -79,22 +79,6 @@ up.stream_frame(frame)      # frame is OpenCV image (numpy array)
 up.close()
 ```
 
-##### Downstream
-
-```
-import downstream as ds
-
-# Start downloading the streaming
-down = Downstreamer("downstreaming thread", address, port, record, path)
-up.start()
-
-...
-# Get the latest frame from the streaming
-frame = down.receive_frame()   # frame is OpenCV image (numpy array)
-...
-# Stop downloading
-down.close()
-```
 
 ## Notes
 

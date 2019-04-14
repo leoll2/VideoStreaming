@@ -131,7 +131,7 @@ if __name__ == "__main__":
     up = Upstreamer("upstreaming thread", address, port, nocolor)
     up.start()
 
-    # Acquire and stream frames
+    # Acquire, process and show frames
     try:
         while True:
             ret, frame = cap.read()

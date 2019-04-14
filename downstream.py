@@ -6,7 +6,7 @@ import sys
 import socket
 import threading
 import errno
-from Queue import Queue
+from Queue import Queue, Full
 from network_protocol.client import ClientProtocol
 
 address = '127.0.0.1'       # default IP address of the streamer
@@ -60,27 +60,27 @@ class Downstreamer(threading.Thread):
             return None
 
     def run(self):
-        try:
-            while not self.stopped():
-                file_num, str_data = self.cp.recv_image()
-                if file_num is None:
-                    break
-                else:
-                    # Convert the received data to video frame format
-                    numpy_data = np.fromstring(str_data, dtype=np.uint8)
-                    img_data = cv2.imdecode(numpy_data, cv2.IMREAD_COLOR)
-                    # Share the new frame
-                    if not self.Q.full():
-                        self.Q.put(img_data)
-                    if record:
-                        # Write the received image to a file whose name is the index of the image
-                        with open(os.path.join(image_folder, '%06d.jpg' % file_num), 'w') as fp:
-                            fp.write(str_data)
-        except KeyboardInterrupt:
-            pass
-        finally:
-            self.cp.close()
-            print 'Connection closed'
+
+        while not self.stopped():
+            file_num, str_data = self.cp.recv_image()
+            if file_num is None:    # TODO: verify
+                break
+            else:
+                # Convert the received data to video frame format
+                numpy_data = np.fromstring(str_data, dtype=np.uint8)
+                img_data = cv2.imdecode(numpy_data, cv2.IMREAD_COLOR)
+                # Share the new frame (if receiver is ready)
+                try:
+                    self.Q.put(img_data, block=False)
+                except Full:
+                    pass
+                if record:
+                    # Write the received image to a file whose name is the index of the image
+                    with open(os.path.join(image_folder, '%06d.jpg' % file_num), 'w') as fp:
+                        fp.write(str_data)
+        print 'exitloop'
+        self.cp.close()
+        print 'Connection closed'
 
 
 def parse_options():
@@ -129,6 +129,7 @@ if __name__ == "__main__":
                 cv2.imshow('Streaming', frame)
                 cv2.waitKey(1)
     except KeyboardInterrupt:
+        print 'keyboardinterrupt'
         pass
 
     down.close()
